@@ -1,0 +1,38 @@
+{
+  "generator-jhipster": {
+    "applicationType": "monolith",
+    "authenticationType": "jwt",
+    "baseName": "auctionSystem",
+    "buildTool": "maven",
+    "cacheProvider": "redis",
+    "clientFramework": "no",
+    "clientTestFrameworks": null,
+    "clientTheme": null,
+    "creationTimestamp": 1795446317615,
+    "databaseType": "sql",
+    "defaultCommand": "app",
+    "devDatabaseType": "postgresql",
+    "enableHibernateCache": false,
+    "enableTranslation": true,
+    "entities": [],
+    "feignClient": null,
+    "jhipsterVersion": "9.4.0",
+    "jwtSecretKey": "M2FjM2U2MjEyZWFhMmQyZTFkY2JmMTc2MjAzOTg3MjYzMGUyYjhkNTkwYzIzZGVlMGEyNDc4NjE3ZjQyMGI2YTM0NTY1YmU0MDhkODRkYmMwNjdmNDQxZjgxZWM5MWM2ODZkYjRiMWYyZDg4NWQwN2Y0OTUyNDYyNzMzODI4MDU=",
+    "languages": ["vi"],
+    "microfrontend": null,
+    "microfrontends": [],
+    "nativeLanguage": "vi",
+    "packageName": "com.auction.system",
+    "prodDatabaseType": "postgresql",
+    "promptValues": {
+      "nativeLanguage": "en"
+    },
+    "reactive": false,
+    "serverPort": null,
+    "serviceDiscoveryType": null,
+    "skipClient": true,
+    "syncUserWithIdp": null,
+    "testFrameworks": [],
+    "withAdminUi": null
+  }
+}
