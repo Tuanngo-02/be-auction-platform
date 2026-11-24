@@ -65,10 +65,22 @@ public class AuctionSystemApp {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
+        normalizeLegacyTimeZone();
         var app = new SpringApplication(AuctionSystemApp.class);
         DefaultProfileUtil.addDefaultProfile(app);
         Environment env = app.run(args).getEnvironment();
         logApplicationStartup(env);
+    }
+
+    /**
+     * Windows reports Vietnam's zone as the legacy alias "Asia/Saigon", which recent PostgreSQL
+     * versions reject in the JDBC startup packet ("invalid value for parameter TimeZone").
+     * Map it to the canonical "Asia/Ho_Chi_Minh" so the app can connect.
+     */
+    static void normalizeLegacyTimeZone() {
+        if ("Asia/Saigon".equals(java.util.TimeZone.getDefault().getID())) {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+        }
     }
 
     private static void logApplicationStartup(Environment env) {
