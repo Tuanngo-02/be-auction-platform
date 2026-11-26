@@ -47,6 +47,11 @@ public class ExceptionTranslatorTestController {
         throw new TestResponseStatusException();
     }
 
+    @GetMapping("/service-bad-request")
+    public void serviceBadRequest() {
+        throw new com.auction.system.service.BadRequestServiceException("test service bad request", "testEntity", "testkey");
+    }
+
     @GetMapping("/internal-server-error")
     public void internalServerError() {
         throw new RuntimeException();

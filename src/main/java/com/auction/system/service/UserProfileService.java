@@ -9,7 +9,6 @@ import com.auction.system.repository.LoginSessionRepository;
 import com.auction.system.repository.UserRepository;
 import com.auction.system.security.SecurityUtils;
 import com.auction.system.service.dto.*;
-import com.auction.system.web.rest.errors.BadRequestAlertException;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.cache.CacheManager;
@@ -48,7 +47,15 @@ public class UserProfileService {
         User user = getCurrentUser();
         UserProfileDTO dto = new UserProfileDTO();
         dto.setUserId(user.getId());
-        dto.setFullName(user.getFullName() != null ? user.getFullName() : ((user.getFirstName() != null ? user.getFirstName() : "") + " " + (user.getLastName() != null ? user.getLastName() : "")).trim());
+        dto.setFullName(
+            user.getFullName() != null
+                ? user.getFullName()
+                : (
+                      (user.getFirstName() != null ? user.getFirstName() : "") +
+                      " " +
+                      (user.getLastName() != null ? user.getLastName() : "")
+                  ).trim()
+        );
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setBirthDate(user.getBirthDate());
@@ -75,7 +82,7 @@ public class UserProfileService {
     public void changePassword(PasswordChangeDTO req) {
         User user = getCurrentUser();
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
-            throw new BadRequestAlertException("Mật khẩu hiện tại không đúng", ENTITY_NAME, "wrongpassword");
+            throw new BadRequestServiceException("Mật khẩu hiện tại không đúng", ENTITY_NAME, "wrongpassword");
         }
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
@@ -104,7 +111,7 @@ public class UserProfileService {
         User user = getCurrentUser();
         LoginSession session = sessionRepository
             .findByIdAndUserId(sessionId, user.getId())
-            .orElseThrow(() -> new BadRequestAlertException("Phiên đăng nhập không tồn tại", ENTITY_NAME, "sessionnotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Phiên đăng nhập không tồn tại", ENTITY_NAME, "sessionnotfound"));
         sessionRepository.delete(session);
     }
 
@@ -152,7 +159,7 @@ public class UserProfileService {
         User user = getCurrentUser();
         Address address = addressRepository
             .findByIdAndUserId(addressId, user.getId())
-            .orElseThrow(() -> new BadRequestAlertException("Địa chỉ không tồn tại", ENTITY_NAME, "addressnotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Địa chỉ không tồn tại", ENTITY_NAME, "addressnotfound"));
         addressRepository.delete(address);
     }
 
@@ -202,7 +209,7 @@ public class UserProfileService {
     public SellerPublicProfileDTO getSellerPublicProfile(Long sellerId) {
         User seller = userRepository
             .findById(sellerId)
-            .orElseThrow(() -> new BadRequestAlertException("Người bán không tồn tại", ENTITY_NAME, "sellernotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Người bán không tồn tại", ENTITY_NAME, "sellernotfound"));
         SellerPublicProfileDTO dto = new SellerPublicProfileDTO();
         dto.setSellerId(seller.getId());
         dto.setFullName(seller.getFullName() != null ? seller.getFullName() : seller.getLogin());
@@ -213,10 +220,11 @@ public class UserProfileService {
     }
 
     private User getCurrentUser() {
-        String login = SecurityUtils.getCurrentUserLogin()
-            .orElseThrow(() -> new BadRequestAlertException("Chưa đăng nhập", ENTITY_NAME, "unauthorized"));
+        String login = SecurityUtils.getCurrentUserLogin().orElseThrow(() ->
+            new BadRequestServiceException("Chưa đăng nhập", ENTITY_NAME, "unauthorized")
+        );
         return userRepository
             .findOneWithAuthoritiesByLogin(login)
-            .orElseThrow(() -> new BadRequestAlertException("Tài khoản không tồn tại", ENTITY_NAME, "usernotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Tài khoản không tồn tại", ENTITY_NAME, "usernotfound"));
     }
 }

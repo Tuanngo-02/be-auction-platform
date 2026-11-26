@@ -15,7 +15,6 @@ import com.auction.system.repository.UserRepository;
 import com.auction.system.security.AuthoritiesConstants;
 import com.auction.system.security.DomainUserDetailsService.UserWithId;
 import com.auction.system.service.dto.*;
-import com.auction.system.web.rest.errors.BadRequestAlertException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -79,10 +78,10 @@ public class AuthModuleService {
     public Map<String, Object> register(RegisterRequestDTO req) {
         String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
         if (userRepository.findOneByEmailIgnoreCase(email).isPresent()) {
-            throw new BadRequestAlertException("Email đã được sử dụng", ENTITY_NAME, "emailexists");
+            throw new BadRequestServiceException("Email đã được sử dụng", ENTITY_NAME, "emailexists");
         }
         if (userRepository.findOneByPhone(req.getPhone().trim()).isPresent()) {
-            throw new BadRequestAlertException("Số điện thoại đã được sử dụng", ENTITY_NAME, "phoneexists");
+            throw new BadRequestServiceException("Số điện thoại đã được sử dụng", ENTITY_NAME, "phoneexists");
         }
 
         User user = new User();
@@ -131,10 +130,10 @@ public class AuthModuleService {
         String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
         OtpVerification otp = otpRepository
             .findTopByEmailIgnoreCaseAndOtpTypeAndUsedFalseOrderByCreatedAtDesc(email, "REGISTER_EMAIL")
-            .orElseThrow(() -> new BadRequestAlertException("Mã OTP không tồn tại hoặc đã hết hạn", ENTITY_NAME, "otpinvalid"));
+            .orElseThrow(() -> new BadRequestServiceException("Mã OTP không tồn tại hoặc đã hết hạn", ENTITY_NAME, "otpinvalid"));
 
         if (otp.getExpiresAt().isBefore(Instant.now()) || !otp.getOtpCode().equals(req.getOtpCode().trim())) {
-            throw new BadRequestAlertException("Mã OTP không đúng hoặc đã hết hạn", ENTITY_NAME, "otpinvalid");
+            throw new BadRequestServiceException("Mã OTP không đúng hoặc đã hết hạn", ENTITY_NAME, "otpinvalid");
         }
 
         otp.setUsed(true);
@@ -142,7 +141,7 @@ public class AuthModuleService {
 
         User user = userRepository
             .findOneByEmailIgnoreCase(email)
-            .orElseThrow(() -> new BadRequestAlertException("Tài khoản không tồn tại", ENTITY_NAME, "usernotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Tài khoản không tồn tại", ENTITY_NAME, "usernotfound"));
         user.setActivated(true);
         user.setEmailVerified(true);
         userRepository.save(user);
@@ -182,16 +181,16 @@ public class AuthModuleService {
     public Map<String, Object> refreshToken(String refreshToken) {
         LoginSession session = sessionRepository
             .findByRefreshToken(refreshToken)
-            .orElseThrow(() -> new BadRequestAlertException("Refresh token không hợp lệ", ENTITY_NAME, "invalidrefreshtoken"));
+            .orElseThrow(() -> new BadRequestServiceException("Refresh token không hợp lệ", ENTITY_NAME, "invalidrefreshtoken"));
 
         if (session.getExpiresAt().isBefore(Instant.now())) {
             sessionRepository.delete(session);
-            throw new BadRequestAlertException("Refresh token đã hết hạn", ENTITY_NAME, "expiredrefreshtoken");
+            throw new BadRequestServiceException("Refresh token đã hết hạn", ENTITY_NAME, "expiredrefreshtoken");
         }
 
         User user = userRepository
             .findById(session.getUserId())
-            .orElseThrow(() -> new BadRequestAlertException("User không tồn tại", ENTITY_NAME, "usernotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("User không tồn tại", ENTITY_NAME, "usernotfound"));
 
         List<GrantedAuthority> authorities = user
             .getAuthorities()
@@ -217,7 +216,7 @@ public class AuthModuleService {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         userRepository
             .findOneByEmailIgnoreCase(normalizedEmail)
-            .orElseThrow(() -> new BadRequestAlertException("Email chưa được đăng ký", ENTITY_NAME, "emailnotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("Email chưa được đăng ký", ENTITY_NAME, "emailnotfound"));
 
         String otpCode = generateOtp();
         OtpVerification otp = new OtpVerification();
@@ -239,10 +238,10 @@ public class AuthModuleService {
         String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
         OtpVerification otp = otpRepository
             .findTopByEmailIgnoreCaseAndOtpTypeAndUsedFalseOrderByCreatedAtDesc(email, "FORGOT_PASSWORD")
-            .orElseThrow(() -> new BadRequestAlertException("Mã OTP không tồn tại", ENTITY_NAME, "otpinvalid"));
+            .orElseThrow(() -> new BadRequestServiceException("Mã OTP không tồn tại", ENTITY_NAME, "otpinvalid"));
 
         if (otp.getExpiresAt().isBefore(Instant.now()) || !otp.getOtpCode().equals(req.getOtpCode().trim())) {
-            throw new BadRequestAlertException("Mã OTP không đúng hoặc đã hết hạn", ENTITY_NAME, "otpinvalid");
+            throw new BadRequestServiceException("Mã OTP không đúng hoặc đã hết hạn", ENTITY_NAME, "otpinvalid");
         }
 
         String resetToken = "rst_" + UUID.randomUUID().toString().replace("-", "");
@@ -255,15 +254,17 @@ public class AuthModuleService {
     public void resetPassword(ResetPasswordRequestDTO req) {
         OtpVerification otp = otpRepository
             .findByResetTokenAndUsedFalse(req.getResetToken())
-            .orElseThrow(() -> new BadRequestAlertException("Reset token không hợp lệ hoặc đã sử dụng", ENTITY_NAME, "invalidresettoken"));
+            .orElseThrow(() ->
+                new BadRequestServiceException("Reset token không hợp lệ hoặc đã sử dụng", ENTITY_NAME, "invalidresettoken")
+            );
 
         if (otp.getExpiresAt().isBefore(Instant.now())) {
-            throw new BadRequestAlertException("Reset token đã hết hạn", ENTITY_NAME, "expiredresettoken");
+            throw new BadRequestServiceException("Reset token đã hết hạn", ENTITY_NAME, "expiredresettoken");
         }
 
         User user = userRepository
             .findOneByEmailIgnoreCase(otp.getEmail())
-            .orElseThrow(() -> new BadRequestAlertException("User không tồn tại", ENTITY_NAME, "usernotfound"));
+            .orElseThrow(() -> new BadRequestServiceException("User không tồn tại", ENTITY_NAME, "usernotfound"));
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
 
@@ -272,11 +273,7 @@ public class AuthModuleService {
     }
 
     private String createJwtToken(Authentication authentication, Long userId) {
-        String authorities = authentication
-            .getAuthorities()
-            .stream()
-            .map(GrantedAuthority::getAuthority)
-            .collect(Collectors.joining(" "));
+        String authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
 
         Instant now = Instant.now();
         Instant validity = now.plus(tokenValidityInSeconds, ChronoUnit.SECONDS);

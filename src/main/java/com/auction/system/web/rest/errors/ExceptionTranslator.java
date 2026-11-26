@@ -65,8 +65,29 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     @ExceptionHandler
     public ResponseEntity<Object> handleAnyException(Throwable ex, NativeWebRequest request) {
         LOG.debug("Converting Exception to Problem Details:", ex);
-        ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);
-        return handleExceptionInternal((Exception) ex, pdCause, buildHeaders(ex), HttpStatusCode.valueOf(pdCause.getStatus()), request);
+        Throwable error = toWebException(ex);
+        ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(error, request);
+        return handleExceptionInternal(
+            (Exception) error,
+            pdCause,
+            buildHeaders(error),
+            HttpStatusCode.valueOf(pdCause.getStatus()),
+            request
+        );
+    }
+
+    /**
+     * Maps service-layer exceptions to their web-layer equivalent so the service layer stays independent of the web layer.
+     */
+    private static Throwable toWebException(Throwable ex) {
+        if (ex instanceof com.auction.system.service.BadRequestServiceException serviceException) {
+            return new BadRequestAlertException(
+                serviceException.getMessage(),
+                serviceException.getEntityName(),
+                serviceException.getErrorKey()
+            );
+        }
+        return ex;
     }
 
     @SuppressWarnings("java:S2638")
