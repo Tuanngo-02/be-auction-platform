@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -81,6 +82,44 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
 
     @Column(name = "reset_date")
     private Instant resetDate = null;
+
+    @Size(max = 100)
+    @Column(name = "full_name", length = 100)
+    private String fullName;
+
+    @Size(max = 20)
+    @Column(name = "phone", length = 20, unique = true)
+    private String phone;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Size(max = 30)
+    @Column(name = "account_status", length = 30)
+    private String accountStatus = "ACTIVE";
+
+    @Size(max = 30)
+    @Column(name = "seller_verification_status", length = 30)
+    private String sellerVerificationStatus = "UNVERIFIED";
+
+    @Size(max = 20)
+    @Column(name = "reputation", length = 20)
+    private String reputation = "5.0";
+
+    @Size(max = 30)
+    @Column(name = "id_card_number", length = 30)
+    private String idCardNumber;
+
+    @Size(max = 512)
+    @Column(name = "id_card_front_url", length = 512)
+    private String idCardFrontUrl;
+
+    @Size(max = 512)
+    @Column(name = "id_card_back_url", length = 512)
+    private String idCardBackUrl;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
 
     @JsonIgnore
     @ManyToMany
@@ -195,6 +234,86 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
 
     public void setAuthorities(Set<Authority> authorities) {
         this.authorities = authorities;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public String getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
+    public String getSellerVerificationStatus() {
+        return sellerVerificationStatus;
+    }
+
+    public void setSellerVerificationStatus(String sellerVerificationStatus) {
+        this.sellerVerificationStatus = sellerVerificationStatus;
+    }
+
+    public String getReputation() {
+        return reputation;
+    }
+
+    public void setReputation(String reputation) {
+        this.reputation = reputation;
+    }
+
+    public String getIdCardNumber() {
+        return idCardNumber;
+    }
+
+    public void setIdCardNumber(String idCardNumber) {
+        this.idCardNumber = idCardNumber;
+    }
+
+    public String getIdCardFrontUrl() {
+        return idCardFrontUrl;
+    }
+
+    public void setIdCardFrontUrl(String idCardFrontUrl) {
+        this.idCardFrontUrl = idCardFrontUrl;
+    }
+
+    public String getIdCardBackUrl() {
+        return idCardBackUrl;
+    }
+
+    public void setIdCardBackUrl(String idCardBackUrl) {
+        this.idCardBackUrl = idCardBackUrl;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     @Override
