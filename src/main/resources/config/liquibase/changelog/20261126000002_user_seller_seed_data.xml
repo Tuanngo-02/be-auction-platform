@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20261126000002-1" author="antigravity" context="dev">
+        <!-- Cập nhật thông tin bổ sung cho admin và user mặc định -->
+        <update tableName="jhi_user">
+            <column name="full_name" value="Quản trị viên Hệ thống"/>
+            <column name="phone" value="0905000001"/>
+            <column name="account_status" value="ACTIVE"/>
+            <column name="seller_verification_status" value="VERIFIED"/>
+            <column name="reputation" value="5.0"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <where>id = 1</where>
+        </update>
+
+        <update tableName="jhi_user">
+            <column name="full_name" value="Người dùng Mặc định"/>
+            <column name="phone" value="0905000002"/>
+            <column name="account_status" value="ACTIVE"/>
+            <column name="seller_verification_status" value="UNVERIFIED"/>
+            <column name="reputation" value="5.0"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <where>id = 2</where>
+        </update>
+
+        <!-- Thêm tài khoản Seller đã xác minh (mật khẩu: user) -->
+        <insert tableName="jhi_user">
+            <column name="id" valueNumeric="3"/>
+            <column name="login" value="seller@auctionhub.vn"/>
+            <column name="password_hash" value="$2a$10$VEjxo0jq2YG9Rbk2HmX9S.k1uZBGYUHdUcid3g/vfiEl7lwWgOH/K"/>
+            <column name="first_name" value="Nguyễn"/>
+            <column name="last_name" value="Văn Seller"/>
+            <column name="full_name" value="Nguyễn Văn Seller"/>
+            <column name="email" value="seller@auctionhub.vn"/>
+            <column name="phone" value="0905111222"/>
+            <column name="birth_date" valueDate="1995-05-15"/>
+            <column name="activated" valueBoolean="true"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="account_status" value="ACTIVE"/>
+            <column name="seller_verification_status" value="VERIFIED"/>
+            <column name="reputation" value="4.9"/>
+            <column name="id_card_number" value="048095001122"/>
+            <column name="lang_key" value="vi"/>
+            <column name="created_by" value="system"/>
+            <column name="last_modified_by" value="system"/>
+        </insert>
+
+        <!-- Thêm tài khoản Bidder (mật khẩu: user) -->
+        <insert tableName="jhi_user">
+            <column name="id" valueNumeric="4"/>
+            <column name="login" value="bidder@auctionhub.vn"/>
+            <column name="password_hash" value="$2a$10$VEjxo0jq2YG9Rbk2HmX9S.k1uZBGYUHdUcid3g/vfiEl7lwWgOH/K"/>
+            <column name="first_name" value="Trần"/>
+            <column name="last_name" value="Thị Bidder"/>
+            <column name="full_name" value="Trần Thị Bidder"/>
+            <column name="email" value="bidder@auctionhub.vn"/>
+            <column name="phone" value="0905333444"/>
+            <column name="birth_date" valueDate="2000-08-20"/>
+            <column name="activated" valueBoolean="true"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="account_status" value="ACTIVE"/>
+            <column name="seller_verification_status" value="UNVERIFIED"/>
+            <column name="reputation" value="4.8"/>
+            <column name="lang_key" value="vi"/>
+            <column name="created_by" value="system"/>
+            <column name="last_modified_by" value="system"/>
+        </insert>
+
+        <!-- Thêm tài khoản Seller đang chờ duyệt xác minh (mật khẩu: user) -->
+        <insert tableName="jhi_user">
+            <column name="id" valueNumeric="5"/>
+            <column name="login" value="pending@auctionhub.vn"/>
+            <column name="password_hash" value="$2a$10$VEjxo0jq2YG9Rbk2HmX9S.k1uZBGYUHdUcid3g/vfiEl7lwWgOH/K"/>
+            <column name="first_name" value="Lê"/>
+            <column name="last_name" value="Minh Chờ Duyệt"/>
+            <column name="full_name" value="Lê Minh Chờ Duyệt"/>
+            <column name="email" value="pending@auctionhub.vn"/>
+            <column name="phone" value="0905555666"/>
+            <column name="birth_date" valueDate="1998-11-10"/>
+            <column name="activated" valueBoolean="true"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="account_status" value="ACTIVE"/>
+            <column name="seller_verification_status" value="PENDING"/>
+            <column name="reputation" value="5.0"/>
+            <column name="id_card_number" value="048098005566"/>
+            <column name="id_card_front_url" value="https://placehold.co/600x400?text=CCCD+Mat+Truoc"/>
+            <column name="id_card_back_url" value="https://placehold.co/600x400?text=CCCD+Mat+Sau"/>
+            <column name="lang_key" value="vi"/>
+            <column name="created_by" value="system"/>
+            <column name="last_modified_by" value="system"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20261126000002-2" author="antigravity" context="dev">
+        <!-- Gán quyền cho các tài khoản mẫu -->
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="3"/>
+            <column name="authority_name" value="ROLE_USER"/>
+        </insert>
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="3"/>
+            <column name="authority_name" value="ROLE_SELLER"/>
+        </insert>
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="4"/>
+            <column name="authority_name" value="ROLE_USER"/>
+        </insert>
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="4"/>
+            <column name="authority_name" value="ROLE_BIDDER"/>
+        </insert>
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="5"/>
+            <column name="authority_name" value="ROLE_USER"/>
+        </insert>
+        <insert tableName="jhi_user_authority">
+            <column name="user_id" valueNumeric="5"/>
+            <column name="authority_name" value="ROLE_BIDDER"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20261126000002-3" author="antigravity" context="dev">
+        <!-- Dữ liệu mẫu sổ địa chỉ -->
+        <insert tableName="address">
+            <column name="user_id" valueNumeric="3"/>
+            <column name="address_text" value="470 Trần Đại Nghĩa, Phường Hòa Quý, Quận Ngũ Hành Sơn, Đà Nẵng"/>
+            <column name="is_default" valueBoolean="true"/>
+            <column name="created_by" value="system"/>
+        </insert>
+        <insert tableName="address">
+            <column name="user_id" valueNumeric="3"/>
+            <column name="address_text" value="123 Nguyễn Văn Linh, Quận Hải Châu, Đà Nẵng"/>
+            <column name="is_default" valueBoolean="false"/>
+            <column name="created_by" value="system"/>
+        </insert>
+        <insert tableName="address">
+            <column name="user_id" valueNumeric="4"/>
+            <column name="address_text" value="54 Nguyễn Lương Bằng, Quận Liên Chiểu, Đà Nẵng"/>
+            <column name="is_default" valueBoolean="true"/>
+            <column name="created_by" value="system"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

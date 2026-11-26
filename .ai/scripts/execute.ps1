@@ -1,4 +1,4 @@
-﻿
+
 param([Parameter(Mandatory=$true)][string]$Task)
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -6,7 +6,14 @@ $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $repo
 $taskFile = ".ai/tasks/$Task.md"
 if (-not (Test-Path $taskFile)) { throw "Task file not found: $taskFile" }
-if (-not (Get-Command agy -ErrorAction SilentlyContinue)) { throw "agy (Antigravity CLI) not found in PATH" }
+if (-not (Get-Command agy -ErrorAction SilentlyContinue)) {
+  $geminiBin = Join-Path $env:USERPROFILE ".gemini\bin"
+  if (Test-Path (Join-Path $geminiBin "agy.exe")) {
+    $env:PATH = "$geminiBin;$env:PATH"
+  } else {
+    throw "agy (Antigravity CLI) not found in PATH or $geminiBin"
+  }
+}
 
 $prompt = "You are the EXECUTOR. Read AGENTS.md and .ai/roles/executor.md and follow them strictly. " +
   "Implement the task in $taskFile. " +

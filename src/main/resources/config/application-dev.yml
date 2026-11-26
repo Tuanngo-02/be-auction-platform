@@ -32,7 +32,9 @@ spring:
       indent-output: true
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://localhost:5432/auctionSystem
+    url: jdbc:postgresql://localhost:5433/auctionSystem
+    username: auctionSystem
+    password: ""
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -48,7 +50,7 @@ spring:
     cache: false
 
 server:
-  port: 8080
+  port: 8081
   # make sure requests the proxy uri instead of the server one
   forward-headers-strategy: native
 
@@ -69,7 +71,7 @@ jhipster:
   # CORS is only enabled by default with the "dev" profile
   cors:
     # Allow Ionic for JHipster by default (* no longer allowed in Spring Boot 2.4+)
-    allowed-origins: 'http://localhost:3000,http://localhost:8100,https://localhost:8100'
+    allowed-origins: 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:8100,https://localhost:8100'
     # Enable CORS when running in GitHub Codespaces
     allowed-origin-patterns: 'https://*.githubpreview.dev'
     allowed-methods: '*'

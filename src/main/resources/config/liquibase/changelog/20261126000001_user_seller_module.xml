@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20261126000001-1" author="antigravity">
+        <addColumn tableName="jhi_user">
+            <column name="full_name" type="varchar(100)"/>
+            <column name="phone" type="varchar(20)">
+                <constraints unique="true" uniqueConstraintName="ux_user_phone"/>
+            </column>
+            <column name="birth_date" type="date"/>
+            <column name="account_status" type="varchar(30)" defaultValue="ACTIVE"/>
+            <column name="seller_verification_status" type="varchar(30)" defaultValue="UNVERIFIED"/>
+            <column name="reputation" type="varchar(20)" defaultValue="5.0"/>
+            <column name="id_card_number" type="varchar(30)"/>
+            <column name="id_card_front_url" type="varchar(512)"/>
+            <column name="id_card_back_url" type="varchar(512)"/>
+            <column name="email_verified" type="boolean" defaultValueBoolean="false"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20261126000001-2" author="antigravity">
+        <insert tableName="jhi_authority">
+            <column name="name" value="ROLE_SELLER"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="ROLE_BIDDER"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20261126000001-3" author="antigravity">
+        <createTable tableName="address">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address_text" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_default" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(50)" defaultValue="system">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_date" type="timestamp" defaultValueComputed="${now}"/>
+            <column name="last_modified_by" type="varchar(50)"/>
+            <column name="last_modified_date" type="timestamp"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="user_id"
+                                 baseTableName="address"
+                                 constraintName="fk_address_user_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="jhi_user"/>
+    </changeSet>
+
+    <changeSet id="20261126000001-4" author="antigravity">
+        <createTable tableName="login_session">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="device_info" type="varchar(255)"/>
+            <column name="ip_address" type="varchar(50)"/>
+            <column name="refresh_token" type="varchar(512)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_login_session_refresh_token"/>
+            </column>
+            <column name="expires_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="user_id"
+                                 baseTableName="login_session"
+                                 constraintName="fk_login_session_user_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="jhi_user"/>
+    </changeSet>
+
+    <changeSet id="20261126000001-5" author="antigravity">
+        <createTable tableName="otp_verification">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="varchar(254)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="otp_code" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="otp_type" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reset_token" type="varchar(100)"/>
+            <column name="expires_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="used" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
