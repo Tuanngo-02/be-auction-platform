@@ -15,6 +15,8 @@ import com.auction.system.repository.UserRepository;
 import com.auction.system.security.AuthoritiesConstants;
 import com.auction.system.security.DomainUserDetailsService.UserWithId;
 import com.auction.system.service.dto.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -53,6 +55,9 @@ public class AuthModuleService {
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Value("${jhipster.security.authentication.jwt.token-validity-in-seconds:86400}")
     private long tokenValidityInSeconds;
@@ -108,6 +113,12 @@ public class AuthModuleService {
         user.setAuthorities(authorities);
 
         User saved = userRepository.save(user);
+
+        // Khởi tạo ví nội bộ mặc định cho người dùng mới
+        entityManager
+            .createNativeQuery("INSERT INTO wallet (user_id, coin_balance) VALUES (:uid, 0)")
+            .setParameter("uid", saved.getId())
+            .executeUpdate();
 
         String otpCode = generateOtp();
         OtpVerification otp = new OtpVerification();
@@ -173,6 +184,11 @@ public class AuthModuleService {
             session.setRefreshToken(refreshToken);
             session.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
             sessionRepository.save(session);
+
+            entityManager
+                .createNativeQuery("INSERT INTO audit_log (actor_id, action, action_time) VALUES (:uid, 'LOGIN', CURRENT_TIMESTAMP)")
+                .setParameter("uid", userId)
+                .executeUpdate();
         }
 
         return new AuthTokenDTO(accessToken, refreshToken, tokenValidityInSeconds);

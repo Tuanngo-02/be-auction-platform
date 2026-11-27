@@ -9,6 +9,9 @@ import com.auction.system.repository.LoginSessionRepository;
 import com.auction.system.repository.UserRepository;
 import com.auction.system.security.SecurityUtils;
 import com.auction.system.service.dto.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.cache.CacheManager;
@@ -27,6 +30,9 @@ public class UserProfileService {
     private final LoginSessionRepository sessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final CacheManager cacheManager;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public UserProfileService(
         UserRepository userRepository,
@@ -64,6 +70,34 @@ public class UserProfileService {
         dto.setAccountStatus(user.getAccountStatus() != null ? user.getAccountStatus() : "ACTIVE");
         dto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()) || user.isActivated());
         dto.setRoles(user.getAuthorities().stream().map(Authority::getName).collect(Collectors.toSet()));
+
+        if (user.getIdCardNumber() != null && user.getIdCardNumber().length() >= 6) {
+            dto.setMaskedIdCard(user.getIdCardNumber().substring(0, 6) + "******");
+        }
+
+        // Lấy số dư ví và tiền cọc đang phong tỏa từ CSDL
+        dto.setAvailableBalance(queryDecimal("SELECT COALESCE(SUM(coin_balance), 0) FROM wallet WHERE user_id = :uid", user.getId()));
+        dto.setLockedDeposit(
+            queryDecimal("SELECT COALESCE(SUM(amount), 0) FROM deposit WHERE bidder_id = :uid AND status = 'LOCKED'", user.getId())
+        );
+
+        // Lấy số lượng phiên tham gia, theo dõi, đơn hàng từ CSDL
+        dto.setParticipatedCount(queryCount("SELECT COUNT(*) FROM auction_participation WHERE bidder_id = :uid", user.getId()));
+        dto.setWatchlistCount(queryCount("SELECT COUNT(*) FROM watchlist WHERE user_id = :uid", user.getId()));
+        dto.setOrdersCount(
+            queryCount(
+                "SELECT COUNT(*) FROM orders o JOIN auction_result ar ON o.auction_id = ar.auction_id " +
+                "JOIN bid b ON ar.winning_bid_id = b.id WHERE b.bidder_id = :uid",
+                user.getId()
+            )
+        );
+
+        // Lấy địa chỉ mặc định từ bảng address
+        List<Address> addresses = addressRepository.findByUserIdOrderByIsDefaultDescIdDesc(user.getId());
+        if (!addresses.isEmpty()) {
+            dto.setDefaultAddress(addresses.get(0).getAddressText());
+        }
+
         return dto;
     }
 
@@ -76,6 +110,7 @@ public class UserProfileService {
         user.setBirthDate(req.getBirthDate());
         userRepository.save(user);
         clearUserCaches(user);
+        recordAuditLog(user.getId(), "UPDATE_PROFILE");
         return getMyProfile();
     }
 
@@ -87,6 +122,7 @@ public class UserProfileService {
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
         clearUserCaches(user);
+        recordAuditLog(user.getId(), "CHANGE_PASSWORD");
     }
 
     @Transactional(readOnly = true)
@@ -113,6 +149,7 @@ public class UserProfileService {
             .findByIdAndUserId(sessionId, user.getId())
             .orElseThrow(() -> new BadRequestServiceException("Phiên đăng nhập không tồn tại", ENTITY_NAME, "sessionnotfound"));
         sessionRepository.delete(session);
+        recordAuditLog(user.getId(), "REVOKE_SESSION");
     }
 
     @Transactional(readOnly = true)
@@ -147,6 +184,7 @@ public class UserProfileService {
         address.setAddressText(req.getAddressText().trim());
         address.setIsDefault(Boolean.TRUE.equals(req.getIsDefault()));
         Address saved = addressRepository.save(address);
+        recordAuditLog(user.getId(), "ADD_ADDRESS");
 
         AddressDTO res = new AddressDTO();
         res.setAddressId(saved.getId());
@@ -161,6 +199,7 @@ public class UserProfileService {
             .findByIdAndUserId(addressId, user.getId())
             .orElseThrow(() -> new BadRequestServiceException("Địa chỉ không tồn tại", ENTITY_NAME, "addressnotfound"));
         addressRepository.delete(address);
+        recordAuditLog(user.getId(), "DELETE_ADDRESS");
     }
 
     public Map<String, Object> submitSellerVerification(SellerVerificationDTO req) {
@@ -171,37 +210,34 @@ public class UserProfileService {
         user.setSellerVerificationStatus("PENDING");
         userRepository.save(user);
         clearUserCaches(user);
+        recordAuditLog(user.getId(), "SUBMIT_SELLER_VERIFICATION");
         return Map.of("status", "PENDING");
     }
 
-    private void clearUserCaches(User user) {
-        Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_LOGIN_CACHE)).evictIfPresent(user.getLogin());
-        if (user.getEmail() != null) {
-            Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE)).evictIfPresent(user.getEmail());
-        }
-    }
-
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public Map<String, Object> getMyActivities(int page, int size) {
         User user = getCurrentUser();
-        List<LoginSession> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        List<Map<String, Object>> items = sessions
-            .stream()
-            .skip((long) page * size)
-            .limit(size)
-            .map(s -> {
-                Map<String, Object> item = new LinkedHashMap<>();
-                item.put("activityId", s.getId());
-                item.put("action", "LOGIN");
-                item.put("deviceInfo", s.getDeviceInfo());
-                item.put("timestamp", s.getCreatedAt());
-                return item;
-            })
-            .collect(Collectors.toList());
+        List<Object[]> rows = entityManager
+            .createNativeQuery("SELECT id, action, action_time FROM audit_log WHERE actor_id = :uid ORDER BY action_time DESC")
+            .setParameter("uid", user.getId())
+            .setFirstResult(page * size)
+            .setMaxResults(size)
+            .getResultList();
+
+        long total = queryCount("SELECT COUNT(*) FROM audit_log WHERE actor_id = :uid", user.getId());
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Object[] r : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("activityId", ((Number) r[0]).longValue());
+            item.put("action", r[1]);
+            item.put("timestamp", r[2]);
+            items.add(item);
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
-        result.put("total", sessions.size());
+        result.put("total", total);
         return result;
     }
 
@@ -210,13 +246,44 @@ public class UserProfileService {
         User seller = userRepository
             .findById(sellerId)
             .orElseThrow(() -> new BadRequestServiceException("Người bán không tồn tại", ENTITY_NAME, "sellernotfound"));
+        long totalAuctions = queryCount(
+            "SELECT COUNT(*) FROM auction a JOIN product p ON a.product_id = p.id WHERE p.seller_id = :uid",
+            sellerId
+        );
         SellerPublicProfileDTO dto = new SellerPublicProfileDTO();
         dto.setSellerId(seller.getId());
         dto.setFullName(seller.getFullName() != null ? seller.getFullName() : seller.getLogin());
         dto.setReputation(seller.getReputation() != null ? seller.getReputation() : "5.0");
-        dto.setTotalAuctions(0);
+        dto.setTotalAuctions(totalAuctions);
         dto.setVerified("VERIFIED".equalsIgnoreCase(seller.getSellerVerificationStatus()));
         return dto;
+    }
+
+    private BigDecimal queryDecimal(String sql, Long userId) {
+        Object res = entityManager.createNativeQuery(sql).setParameter("uid", userId).getSingleResult();
+        if (res instanceof BigDecimal bd) return bd;
+        if (res instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        return BigDecimal.ZERO;
+    }
+
+    private long queryCount(String sql, Long userId) {
+        Object res = entityManager.createNativeQuery(sql).setParameter("uid", userId).getSingleResult();
+        return res instanceof Number n ? n.longValue() : 0L;
+    }
+
+    private void recordAuditLog(Long userId, String action) {
+        entityManager
+            .createNativeQuery("INSERT INTO audit_log (actor_id, action, action_time) VALUES (:uid, :act, CURRENT_TIMESTAMP)")
+            .setParameter("uid", userId)
+            .setParameter("act", action)
+            .executeUpdate();
+    }
+
+    private void clearUserCaches(User user) {
+        Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_LOGIN_CACHE)).evictIfPresent(user.getLogin());
+        if (user.getEmail() != null) {
+            Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE)).evictIfPresent(user.getEmail());
+        }
     }
 
     private User getCurrentUser() {

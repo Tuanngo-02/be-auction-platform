@@ -1,5 +1,6 @@
 package com.auction.system.service.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
 
@@ -15,6 +16,13 @@ public class UserProfileDTO {
     private String accountStatus;
     private Boolean emailVerified;
     private Set<String> roles;
+    private BigDecimal availableBalance = BigDecimal.ZERO;
+    private BigDecimal lockedDeposit = BigDecimal.ZERO;
+    private long participatedCount;
+    private long watchlistCount;
+    private long ordersCount;
+    private String defaultAddress;
+    private String maskedIdCard;
 
     public Long getUserId() {
         return userId;
@@ -94,5 +102,61 @@ public class UserProfileDTO {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public BigDecimal getAvailableBalance() {
+        return availableBalance;
+    }
+
+    public void setAvailableBalance(BigDecimal availableBalance) {
+        this.availableBalance = availableBalance;
+    }
+
+    public BigDecimal getLockedDeposit() {
+        return lockedDeposit;
+    }
+
+    public void setLockedDeposit(BigDecimal lockedDeposit) {
+        this.lockedDeposit = lockedDeposit;
+    }
+
+    public long getParticipatedCount() {
+        return participatedCount;
+    }
+
+    public void setParticipatedCount(long participatedCount) {
+        this.participatedCount = participatedCount;
+    }
+
+    public long getWatchlistCount() {
+        return watchlistCount;
+    }
+
+    public void setWatchlistCount(long watchlistCount) {
+        this.watchlistCount = watchlistCount;
+    }
+
+    public long getOrdersCount() {
+        return ordersCount;
+    }
+
+    public void setOrdersCount(long ordersCount) {
+        this.ordersCount = ordersCount;
+    }
+
+    public String getDefaultAddress() {
+        return defaultAddress;
+    }
+
+    public void setDefaultAddress(String defaultAddress) {
+        this.defaultAddress = defaultAddress;
+    }
+
+    public String getMaskedIdCard() {
+        return maskedIdCard;
+    }
+
+    public void setMaskedIdCard(String maskedIdCard) {
+        this.maskedIdCard = maskedIdCard;
     }
 }
