@@ -105,33 +105,33 @@ class SecurityUtilsUnitTest {
     @Test
     void testHasCurrentUserThisAuthority() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
+        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.BIDDER));
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
-        assertThat(SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.USER)).isTrue();
-        assertThat(SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ADMIN)).isFalse();
+        assertThat(SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.BIDDER)).isTrue();
+        assertThat(SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.SUPER_ADMIN)).isFalse();
     }
 
     @Test
     void testHasCurrentUserAnyOfAuthorities() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
+        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.BIDDER));
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
-        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN)).isTrue();
-        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN)).isFalse();
+        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.BIDDER, AuthoritiesConstants.SUPER_ADMIN)).isTrue();
+        assertThat(SecurityUtils.hasCurrentUserAnyOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.SUPER_ADMIN)).isFalse();
     }
 
     @Test
     void testHasCurrentUserNoneOfAuthorities() {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.USER));
+        var authorities = List.of(new SimpleGrantedAuthority(AuthoritiesConstants.BIDDER));
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", "anonymous", authorities));
         SecurityContextHolder.setContext(securityContext);
 
-        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.USER, AuthoritiesConstants.ADMIN)).isFalse();
-        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.ADMIN)).isTrue();
+        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.BIDDER, AuthoritiesConstants.SUPER_ADMIN)).isFalse();
+        assertThat(SecurityUtils.hasCurrentUserNoneOfAuthorities(AuthoritiesConstants.ANONYMOUS, AuthoritiesConstants.SUPER_ADMIN)).isTrue();
     }
 }

@@ -33,7 +33,7 @@ import tools.jackson.databind.ObjectMapper;
  * Integration tests for the {@link UserResource} REST controller.
  */
 @AutoConfigureMockMvc
-@WithMockUser(authorities = AuthoritiesConstants.ADMIN)
+@WithMockUser(authorities = AuthoritiesConstants.SUPER_ADMIN)
 @IntegrationTest
 class UserResourceIT {
 
@@ -145,7 +145,7 @@ class UserResourceIT {
         userDTO.setActivated(true);
         userDTO.setImageUrl(DEFAULT_IMAGEURL);
         userDTO.setLangKey(DEFAULT_LANGKEY);
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         var returnedUserDTO = om.readValue(
             restUserMockMvc
@@ -181,7 +181,7 @@ class UserResourceIT {
         userDTO.setActivated(true);
         userDTO.setImageUrl(DEFAULT_IMAGEURL);
         userDTO.setLangKey(DEFAULT_LANGKEY);
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         // An entity with an existing ID cannot be created, so this API call must fail
         restUserMockMvc
@@ -207,7 +207,7 @@ class UserResourceIT {
         userDTO.setActivated(true);
         userDTO.setImageUrl(DEFAULT_IMAGEURL);
         userDTO.setLangKey(DEFAULT_LANGKEY);
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         // Create the User
         restUserMockMvc
@@ -233,7 +233,7 @@ class UserResourceIT {
         userDTO.setActivated(true);
         userDTO.setImageUrl(DEFAULT_IMAGEURL);
         userDTO.setLangKey(DEFAULT_LANGKEY);
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         // Create the User
         restUserMockMvc
@@ -315,7 +315,7 @@ class UserResourceIT {
         userDTO.setCreatedDate(updatedUser.getCreatedDate());
         userDTO.setLastModifiedBy(updatedUser.getLastModifiedBy());
         userDTO.setLastModifiedDate(updatedUser.getLastModifiedDate());
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         restUserMockMvc
             .perform(put("/api/admin/users").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(userDTO)))
@@ -360,7 +360,7 @@ class UserResourceIT {
         userDTO.setCreatedDate(updatedUser.getCreatedDate());
         userDTO.setLastModifiedBy(updatedUser.getLastModifiedBy());
         userDTO.setLastModifiedDate(updatedUser.getLastModifiedDate());
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         restUserMockMvc
             .perform(put("/api/admin/users").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(userDTO)))
@@ -416,7 +416,7 @@ class UserResourceIT {
         userDTO.setCreatedDate(updatedUser.getCreatedDate());
         userDTO.setLastModifiedBy(updatedUser.getLastModifiedBy());
         userDTO.setLastModifiedDate(updatedUser.getLastModifiedDate());
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         restUserMockMvc
             .perform(put("/api/admin/users").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(userDTO)))
@@ -456,7 +456,7 @@ class UserResourceIT {
         userDTO.setCreatedDate(updatedUser.getCreatedDate());
         userDTO.setLastModifiedBy(updatedUser.getLastModifiedBy());
         userDTO.setLastModifiedDate(updatedUser.getLastModifiedDate());
-        userDTO.setAuthorities(Set.of(AuthoritiesConstants.USER));
+        userDTO.setAuthorities(Set.of(AuthoritiesConstants.BIDDER));
 
         restUserMockMvc
             .perform(put("/api/admin/users").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(userDTO)))

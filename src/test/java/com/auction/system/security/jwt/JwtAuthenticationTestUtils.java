@@ -1,6 +1,6 @@
 package com.auction.system.security.jwt;
 
-import static com.auction.system.security.AuthoritiesConstants.ADMIN;
+import static com.auction.system.security.AuthoritiesConstants.SUPER_ADMIN;
 import static com.auction.system.security.SecurityUtils.AUTHORITIES_CLAIM;
 import static com.auction.system.security.SecurityUtils.JWT_ALGORITHM;
 
@@ -43,7 +43,7 @@ public class JwtAuthenticationTestUtils {
             .issuedAt(now)
             .expiresAt(now.plusSeconds(60))
             .subject(user)
-            .claims(customClaim -> customClaim.put(AUTHORITIES_CLAIM, List.of(ADMIN)))
+            .claims(customClaim -> customClaim.put(AUTHORITIES_CLAIM, List.of(SUPER_ADMIN)))
             .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
