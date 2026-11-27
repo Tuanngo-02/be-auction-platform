@@ -5,9 +5,15 @@ package com.auction.system.security;
  */
 public final class AuthoritiesConstants {
 
-    public static final String ADMIN = "ROLE_ADMIN";
+    public static final String SUPER_ADMIN = "ROLE_SUPER_ADMIN";
 
-    public static final String USER = "ROLE_USER";
+    public static final String SYSTEM_ADMIN = "ROLE_SYSTEM_ADMIN";
+
+    public static final String AUCTION_ADMIN = "ROLE_AUCTION_ADMIN";
+
+    public static final String FINANCE_ADMIN = "ROLE_FINANCE_ADMIN";
+
+    public static final String SUPPORT_ADMIN = "ROLE_SUPPORT_ADMIN";
 
     public static final String SELLER = "ROLE_SELLER";
 

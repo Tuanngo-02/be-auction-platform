@@ -65,6 +65,7 @@ public class UserProfileController {
     }
 
     @PostMapping("/seller-verification")
+    @PreAuthorize("hasAuthority('ROLE_BIDDER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> submitSellerVerification(@Valid @RequestBody SellerVerificationDTO req) {
         return ResponseEntity.ok(ApiResponse.success(userProfileService.submitSellerVerification(req)));
     }

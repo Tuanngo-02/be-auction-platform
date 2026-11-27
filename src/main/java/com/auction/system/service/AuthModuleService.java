@@ -15,6 +15,8 @@ import com.auction.system.repository.UserRepository;
 import com.auction.system.security.AuthoritiesConstants;
 import com.auction.system.security.DomainUserDetailsService.UserWithId;
 import com.auction.system.service.dto.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -53,9 +56,17 @@ public class AuthModuleService {
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final MailService mailService;
+    private final CacheManager cacheManager;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Value("${jhipster.security.authentication.jwt.token-validity-in-seconds:86400}")
     private long tokenValidityInSeconds;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
 
     public AuthModuleService(
         UserRepository userRepository,
@@ -64,7 +75,9 @@ public class AuthModuleService {
         LoginSessionRepository sessionRepository,
         PasswordEncoder passwordEncoder,
         JwtEncoder jwtEncoder,
-        AuthenticationManagerBuilder authenticationManagerBuilder
+        AuthenticationManagerBuilder authenticationManagerBuilder,
+        MailService mailService,
+        CacheManager cacheManager
     ) {
         this.userRepository = userRepository;
         this.authorityRepository = authorityRepository;
@@ -73,6 +86,8 @@ public class AuthModuleService {
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.authenticationManagerBuilder = authenticationManagerBuilder;
+        this.mailService = mailService;
+        this.cacheManager = cacheManager;
     }
 
     public Map<String, Object> register(RegisterRequestDTO req) {
@@ -103,11 +118,19 @@ public class AuthModuleService {
         user.setLangKey("vi");
 
         Set<Authority> authorities = new HashSet<>();
-        authorityRepository.findById(AuthoritiesConstants.USER).ifPresent(authorities::add);
         authorityRepository.findById(AuthoritiesConstants.BIDDER).ifPresent(authorities::add);
+        if ("SELLER".equalsIgnoreCase(req.getRole())) {
+            authorityRepository.findById(AuthoritiesConstants.SELLER).ifPresent(authorities::add);
+        }
         user.setAuthorities(authorities);
 
         User saved = userRepository.save(user);
+
+        // Khởi tạo ví nội bộ mặc định cho người dùng mới
+        entityManager
+            .createNativeQuery("INSERT INTO wallet (user_id, coin_balance) VALUES (:uid, 0)")
+            .setParameter("uid", saved.getId())
+            .executeUpdate();
 
         String otpCode = generateOtp();
         OtpVerification otp = new OtpVerification();
@@ -118,6 +141,11 @@ public class AuthModuleService {
         otpRepository.save(otp);
 
         LOG.info("[DEV OTP] Mã xác thực đăng ký cho {} là: {}", email, otpCode);
+        sendOtpEmailIfConfigured(
+            email,
+            "[AuctionHub] Mã OTP xác thực đăng ký tài khoản",
+            "Xin chào " + saved.getFullName() + ",\n\nMã OTP xác thực email của bạn là: " + otpCode + "\nMã có hiệu lực trong 5 phút."
+        );
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("userId", saved.getId());
@@ -145,15 +173,68 @@ public class AuthModuleService {
         user.setActivated(true);
         user.setEmailVerified(true);
         userRepository.save(user);
+        clearUserCaches(user);
 
         return Map.of("emailVerified", true);
     }
 
-    public AuthTokenDTO login(LoginRequestDTO req, HttpServletRequest httpReq) {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-            req.getEmailOrPhone().trim(),
-            req.getPassword()
+    public Map<String, Object> resendVerifyEmailOtp(String emailOrPhone) {
+        if (emailOrPhone == null || emailOrPhone.isBlank()) {
+            throw new BadRequestServiceException("Vui lòng nhập email hoặc số điện thoại", ENTITY_NAME, "emailrequired");
+        }
+        String identifier = emailOrPhone.trim();
+        User user = userRepository
+            .findOneByEmailIgnoreCase(identifier)
+            .or(() -> userRepository.findOneByLogin(identifier.toLowerCase(Locale.ROOT)))
+            .or(() -> userRepository.findOneByPhone(identifier))
+            .orElseThrow(() -> new BadRequestServiceException("Tài khoản không tồn tại", ENTITY_NAME, "usernotfound"));
+
+        if (user.isActivated()) {
+            throw new BadRequestServiceException("Email đã được xác minh trước đó", ENTITY_NAME, "alreadyverified");
+        }
+
+        String otpCode = generateOtp();
+        OtpVerification otp = new OtpVerification();
+        otp.setEmail(user.getEmail());
+        otp.setOtpCode(otpCode);
+        otp.setOtpType("REGISTER_EMAIL");
+        otp.setExpiresAt(Instant.now().plus(5, ChronoUnit.MINUTES));
+        otpRepository.save(otp);
+
+        LOG.info("[DEV OTP] Gửi lại mã xác thực đăng ký cho {} là: {}", user.getEmail(), otpCode);
+        sendOtpEmailIfConfigured(
+            user.getEmail(),
+            "[AuctionHub] Mã OTP xác thực đăng ký tài khoản",
+            "Xin chào " +
+            (user.getFullName() != null ? user.getFullName() : user.getLogin()) +
+            ",\n\nMã OTP xác thực email của bạn là: " +
+            otpCode +
+            "\nMã có hiệu lực trong 5 phút."
         );
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("email", user.getEmail());
+        data.put("otpExpiresIn", 300);
+        return data;
+    }
+
+    public AuthTokenDTO login(LoginRequestDTO req, HttpServletRequest httpReq) {
+        String identifier = req.getEmailOrPhone().trim();
+        userRepository
+            .findOneByEmailIgnoreCase(identifier)
+            .or(() -> userRepository.findOneByLogin(identifier.toLowerCase(Locale.ROOT)))
+            .or(() -> userRepository.findOneByPhone(identifier))
+            .ifPresent(u -> {
+                if (!u.isActivated() && passwordEncoder.matches(req.getPassword(), u.getPassword())) {
+                    throw new BadRequestServiceException(
+                        "Email chưa được xác minh, hãy xác minh trước khi đăng nhập",
+                        ENTITY_NAME,
+                        "emailnotverified"
+                    );
+                }
+            });
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(identifier, req.getPassword());
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -173,12 +254,20 @@ public class AuthModuleService {
             session.setRefreshToken(refreshToken);
             session.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
             sessionRepository.save(session);
+
+            entityManager
+                .createNativeQuery("INSERT INTO audit_log (actor_id, action, action_time) VALUES (:uid, 'LOGIN', CURRENT_TIMESTAMP)")
+                .setParameter("uid", userId)
+                .executeUpdate();
         }
 
         return new AuthTokenDTO(accessToken, refreshToken, tokenValidityInSeconds);
     }
 
     public Map<String, Object> refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new BadRequestServiceException("Refresh token không hợp lệ", ENTITY_NAME, "invalidrefreshtoken");
+        }
         LoginSession session = sessionRepository
             .findByRefreshToken(refreshToken)
             .orElseThrow(() -> new BadRequestServiceException("Refresh token không hợp lệ", ENTITY_NAME, "invalidrefreshtoken"));
@@ -191,6 +280,10 @@ public class AuthModuleService {
         User user = userRepository
             .findById(session.getUserId())
             .orElseThrow(() -> new BadRequestServiceException("User không tồn tại", ENTITY_NAME, "usernotfound"));
+
+        if (!user.isActivated() || "LOCKED".equalsIgnoreCase(user.getAccountStatus()) || "SUSPENDED".equalsIgnoreCase(user.getAccountStatus())) {
+            throw new BadRequestServiceException("Tài khoản đã bị khóa hoặc chưa kích hoạt", ENTITY_NAME, "accountinactive");
+        }
 
         List<GrantedAuthority> authorities = user
             .getAuthorities()
@@ -208,11 +301,22 @@ public class AuthModuleService {
 
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            sessionRepository.findByRefreshToken(refreshToken).ifPresent(sessionRepository::delete);
+            sessionRepository
+                .findByRefreshToken(refreshToken)
+                .ifPresent(session -> {
+                    entityManager
+                        .createNativeQuery("INSERT INTO audit_log (actor_id, action, action_time) VALUES (:uid, 'LOGOUT', CURRENT_TIMESTAMP)")
+                        .setParameter("uid", session.getUserId())
+                        .executeUpdate();
+                    sessionRepository.delete(session);
+                });
         }
     }
 
     public Map<String, Object> forgotPasswordSendOtp(String email) {
+        if (email == null || email.isBlank()) {
+            throw new BadRequestServiceException("Vui lòng nhập email", ENTITY_NAME, "emailrequired");
+        }
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         userRepository
             .findOneByEmailIgnoreCase(normalizedEmail)
@@ -227,6 +331,11 @@ public class AuthModuleService {
         otpRepository.save(otp);
 
         LOG.info("[DEV OTP] Mã OTP khôi phục mật khẩu cho {} là: {}", normalizedEmail, otpCode);
+        sendOtpEmailIfConfigured(
+            normalizedEmail,
+            "[AuctionHub] Mã OTP khôi phục mật khẩu",
+            "Xin chào,\n\nMã OTP khôi phục mật khẩu của bạn là: " + otpCode + "\nMã có hiệu lực trong 5 phút."
+        );
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("email", normalizedEmail);
@@ -267,6 +376,7 @@ public class AuthModuleService {
             .orElseThrow(() -> new BadRequestServiceException("User không tồn tại", ENTITY_NAME, "usernotfound"));
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
+        clearUserCaches(user);
 
         otp.setUsed(true);
         otpRepository.save(otp);
@@ -289,6 +399,26 @@ public class AuthModuleService {
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, builder.build())).getTokenValue();
+    }
+
+    private void clearUserCaches(User user) {
+        if (cacheManager == null) {
+            return;
+        }
+        if (user.getLogin() != null && cacheManager.getCache(UserRepository.USERS_BY_LOGIN_CACHE) != null) {
+            cacheManager.getCache(UserRepository.USERS_BY_LOGIN_CACHE).evictIfPresent(user.getLogin());
+        }
+        if (user.getEmail() != null && cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE) != null) {
+            cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE).evictIfPresent(user.getEmail());
+        }
+    }
+
+    private void sendOtpEmailIfConfigured(String to, String subject, String content) {
+        if (mailUsername == null || mailUsername.isBlank()) {
+            LOG.warn("SPRING_MAIL_USERNAME chưa được cấu hình, bỏ qua gửi email OTP thật tới {}", to);
+            return;
+        }
+        mailService.sendEmail(to, subject, content, false, false);
     }
 
     private String generateOtp() {

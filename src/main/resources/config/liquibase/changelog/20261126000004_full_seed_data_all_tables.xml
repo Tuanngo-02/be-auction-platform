@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20261126000004-1" author="antigravity" context="dev">
+        <!-- 1. Permission & RolePermission -->
+        <insert tableName="permission"><column name="id" valueNumeric="1"/><column name="permission_name" value="AUCTION_BID"/></insert>
+        <insert tableName="permission"><column name="id" valueNumeric="2"/><column name="permission_name" value="PRODUCT_CREATE"/></insert>
+        <insert tableName="permission"><column name="id" valueNumeric="3"/><column name="permission_name" value="USER_MANAGE"/></insert>
+        <insert tableName="permission"><column name="id" valueNumeric="4"/><column name="permission_name" value="AUCTION_MODERATE"/></insert>
+        <insert tableName="permission"><column name="id" valueNumeric="5"/><column name="permission_name" value="FINANCE_APPROVE"/></insert>
+        <insert tableName="permission"><column name="id" valueNumeric="6"/><column name="permission_name" value="SUPPORT_RESOLVE"/></insert>
+
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_BIDDER"/><column name="permission_id" valueNumeric="1"/></insert>
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_SELLER"/><column name="permission_id" valueNumeric="2"/></insert>
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_ADMIN"/><column name="permission_id" valueNumeric="3"/></insert>
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_AUCTION_ADMIN"/><column name="permission_id" valueNumeric="4"/></insert>
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_FINANCE_ADMIN"/><column name="permission_id" valueNumeric="5"/></insert>
+        <insert tableName="role_permission"><column name="role_name" value="ROLE_SUPPORT_ADMIN"/><column name="permission_id" valueNumeric="6"/></insert>
+
+        <!-- 2. Category, Product, ProductImage, ImageAnalysis, ProductModeration -->
+        <insert tableName="category"><column name="id" valueNumeric="1"/><column name="category_name" value="Đồng hồ &amp; Trang sức"/></insert>
+        <insert tableName="category"><column name="id" valueNumeric="2"/><column name="category_name" value="Đồ cổ &amp; Nghệ thuật"/></insert>
+        <insert tableName="category"><column name="id" valueNumeric="3"/><column name="category_name" value="Công nghệ &amp; Điện tử"/></insert>
+
+        <insert tableName="product">
+            <column name="id" valueNumeric="1"/>
+            <column name="seller_id" valueNumeric="3"/>
+            <column name="category_id" valueNumeric="1"/>
+            <column name="product_information" value="Đồng hồ Rolex Datejust 36mm Chính Hãng 2022 - Fullbox giấy tờ kiểm định"/>
+            <column name="condition" value="LIKE_NEW"/>
+            <column name="approval_status" value="APPROVED"/>
+        </insert>
+        <insert tableName="product">
+            <column name="id" valueNumeric="2"/>
+            <column name="seller_id" valueNumeric="3"/>
+            <column name="category_id" valueNumeric="2"/>
+            <column name="product_information" value="Bình gốm Chu Đậu vẽ vàng 24K thủ công nghệ nhân"/>
+            <column name="condition" value="NEW"/>
+            <column name="approval_status" value="APPROVED"/>
+        </insert>
+        <insert tableName="product">
+            <column name="id" valueNumeric="3"/>
+            <column name="seller_id" valueNumeric="3"/>
+            <column name="category_id" valueNumeric="3"/>
+            <column name="product_information" value="MacBook Pro 16 M3 Max 64GB RAM 2TB SSD - Bảo hành chính hãng"/>
+            <column name="condition" value="NEW"/>
+            <column name="approval_status" value="PENDING"/>
+        </insert>
+
+        <insert tableName="product_image"><column name="id" valueNumeric="1"/><column name="product_id" valueNumeric="1"/><column name="image_url" value="https://placehold.co/800x600?text=Rolex+Datejust"/></insert>
+        <insert tableName="product_image"><column name="id" valueNumeric="2"/><column name="product_id" valueNumeric="2"/><column name="image_url" value="https://placehold.co/800x600?text=Gom+Chu+Dau"/></insert>
+        <insert tableName="product_image"><column name="id" valueNumeric="3"/><column name="product_id" valueNumeric="3"/><column name="image_url" value="https://placehold.co/800x600?text=MacBook+Pro+M3"/></insert>
+
+        <insert tableName="image_analysis"><column name="id" valueNumeric="1"/><column name="image_id" valueNumeric="1"/><column name="is_ai_generated" valueBoolean="false"/></insert>
+        <insert tableName="image_analysis"><column name="id" valueNumeric="2"/><column name="image_id" valueNumeric="2"/><column name="is_ai_generated" valueBoolean="false"/></insert>
+        <insert tableName="image_analysis"><column name="id" valueNumeric="3"/><column name="image_id" valueNumeric="3"/><column name="is_ai_generated" valueBoolean="false"/></insert>
+
+        <insert tableName="product_moderation"><column name="id" valueNumeric="1"/><column name="product_id" valueNumeric="1"/><column name="admin_id" valueNumeric="1"/><column name="decision" value="APPROVED"/><column name="note" value="Hồ sơ sản phẩm hợp lệ"/></insert>
+        <insert tableName="product_moderation"><column name="id" valueNumeric="2"/><column name="product_id" valueNumeric="2"/><column name="admin_id" valueNumeric="1"/><column name="decision" value="APPROVED"/><column name="note" value="Đã kiểm tra nguồn gốc nghệ nhân"/></insert>
+
+        <!-- 3. Auction, AuctionModeration, FraudAlert, AuctionParticipation, Bid, AuctionResult, Watchlist -->
+        <insert tableName="auction">
+            <column name="id" valueNumeric="1"/>
+            <column name="product_id" valueNumeric="1"/>
+            <column name="starting_price" valueNumeric="50000000"/>
+            <column name="reserve_price" valueNumeric="80000000"/>
+            <column name="bid_increment" valueNumeric="1000000"/>
+            <column name="start_at" value="2026-11-20 08:00:00"/>
+            <column name="end_at" value="2026-12-15 20:00:00"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="auction">
+            <column name="id" valueNumeric="2"/>
+            <column name="product_id" valueNumeric="2"/>
+            <column name="starting_price" valueNumeric="10000000"/>
+            <column name="reserve_price" valueNumeric="14000000"/>
+            <column name="bid_increment" valueNumeric="500000"/>
+            <column name="start_at" value="2026-11-10 08:00:00"/>
+            <column name="end_at" value="2026-11-18 20:00:00"/>
+            <column name="status" value="ENDED"/>
+        </insert>
+
+        <insert tableName="auction_moderation"><column name="id" valueNumeric="1"/><column name="auction_id" valueNumeric="1"/><column name="admin_id" valueNumeric="1"/><column name="action_type" value="APPROVE_SESSION"/></insert>
+        <insert tableName="fraud_alert"><column name="id" valueNumeric="1"/><column name="auction_id" valueNumeric="1"/><column name="abnormal_behavior" value="Tần suất trả giá nhanh bất thường trong khung giờ cao điểm"/></insert>
+
+        <insert tableName="auction_participation"><column name="auction_id" valueNumeric="1"/><column name="bidder_id" valueNumeric="4"/><column name="eligibility_status" value="ELIGIBLE"/></insert>
+        <insert tableName="auction_participation"><column name="auction_id" valueNumeric="2"/><column name="bidder_id" valueNumeric="4"/><column name="eligibility_status" value="ELIGIBLE"/></insert>
+        <insert tableName="auction_participation"><column name="auction_id" valueNumeric="1"/><column name="bidder_id" valueNumeric="2"/><column name="eligibility_status" value="ELIGIBLE"/></insert>
+
+        <insert tableName="bid"><column name="id" valueNumeric="1"/><column name="auction_id" valueNumeric="1"/><column name="bidder_id" valueNumeric="4"/><column name="bid_amount" valueNumeric="52000000"/><column name="validity_status" value="VALID"/></insert>
+        <insert tableName="bid"><column name="id" valueNumeric="2"/><column name="auction_id" valueNumeric="2"/><column name="bidder_id" valueNumeric="4"/><column name="bid_amount" valueNumeric="15000000"/><column name="validity_status" value="VALID"/></insert>
+
+        <insert tableName="auction_result"><column name="auction_id" valueNumeric="2"/><column name="winning_bid_id" valueNumeric="2"/></insert>
+
+        <insert tableName="watchlist"><column name="user_id" valueNumeric="4"/><column name="auction_id" valueNumeric="1"/></insert>
+        <insert tableName="watchlist"><column name="user_id" valueNumeric="3"/><column name="auction_id" valueNumeric="1"/></insert>
+
+        <!-- 4. Wallet, WithdrawalRequest, Deposit, Orders, Payment, WalletTransaction, Shipment, Review, Refund -->
+        <insert tableName="wallet"><column name="id" valueNumeric="1"/><column name="user_id" valueNumeric="1"/><column name="coin_balance" valueNumeric="100000000"/></insert>
+        <insert tableName="wallet"><column name="id" valueNumeric="2"/><column name="user_id" valueNumeric="2"/><column name="coin_balance" valueNumeric="15000000"/></insert>
+        <insert tableName="wallet"><column name="id" valueNumeric="3"/><column name="user_id" valueNumeric="3"/><column name="coin_balance" valueNumeric="45000000"/></insert>
+        <insert tableName="wallet"><column name="id" valueNumeric="4"/><column name="user_id" valueNumeric="4"/><column name="coin_balance" valueNumeric="25000000"/></insert>
+        <insert tableName="wallet"><column name="id" valueNumeric="5"/><column name="user_id" valueNumeric="5"/><column name="coin_balance" valueNumeric="5000000"/></insert>
+
+        <insert tableName="withdrawal_request"><column name="id" valueNumeric="1"/><column name="wallet_id" valueNumeric="3"/><column name="amount" valueNumeric="5000000"/><column name="status" value="PENDING"/></insert>
+
+        <insert tableName="deposit"><column name="id" valueNumeric="1"/><column name="auction_id" valueNumeric="1"/><column name="bidder_id" valueNumeric="4"/><column name="amount" valueNumeric="5000000"/><column name="status" value="LOCKED"/></insert>
+        <insert tableName="deposit"><column name="id" valueNumeric="2"/><column name="auction_id" valueNumeric="2"/><column name="bidder_id" valueNumeric="4"/><column name="amount" valueNumeric="2000000"/><column name="status" value="RELEASED"/></insert>
+        <insert tableName="deposit"><column name="id" valueNumeric="3"/><column name="auction_id" valueNumeric="1"/><column name="bidder_id" valueNumeric="2"/><column name="amount" valueNumeric="5000000"/><column name="status" value="LOCKED"/></insert>
+
+        <insert tableName="orders"><column name="id" valueNumeric="1"/><column name="auction_id" valueNumeric="2"/><column name="address_id" valueNumeric="3"/><column name="order_status" value="COMPLETED"/></insert>
+        <insert tableName="payment"><column name="id" valueNumeric="1"/><column name="order_id" valueNumeric="1"/><column name="amount" valueNumeric="15000000"/><column name="payment_status" value="PAID"/></insert>
+
+        <insert tableName="wallet_transaction">
+            <column name="id" valueNumeric="1"/>
+            <column name="wallet_id" valueNumeric="4"/>
+            <column name="deposit_id" valueNumeric="1"/>
+            <column name="transaction_type" value="DEPOSIT_LOCK"/>
+            <column name="amount" valueNumeric="5000000"/>
+            <column name="status" value="SUCCESS"/>
+        </insert>
+        <insert tableName="wallet_transaction">
+            <column name="id" valueNumeric="2"/>
+            <column name="wallet_id" valueNumeric="4"/>
+            <column name="payment_id" valueNumeric="1"/>
+            <column name="transaction_type" value="ORDER_PAYMENT"/>
+            <column name="amount" valueNumeric="15000000"/>
+            <column name="status" value="SUCCESS"/>
+        </insert>
+
+        <insert tableName="shipment"><column name="id" valueNumeric="1"/><column name="order_id" valueNumeric="1"/><column name="delivery_status" value="DELIVERED"/></insert>
+        <insert tableName="review"><column name="id" valueNumeric="1"/><column name="order_id" valueNumeric="1"/><column name="reviewer_id" valueNumeric="4"/><column name="rating" valueNumeric="5"/><column name="review_content" value="Sản phẩm tuyệt vời, đúng như mô tả và giao hàng đúng hẹn."/></insert>
+        <insert tableName="refund"><column name="id" valueNumeric="1"/><column name="payment_id" valueNumeric="1"/><column name="amount" valueNumeric="500000"/></insert>
+
+        <!-- 5. Notification, Complaint, Report, Dispute, AuditLog, SystemConfiguration -->
+        <insert tableName="notification"><column name="id" valueNumeric="1"/><column name="recipient_id" valueNumeric="4"/><column name="notification_type" value="AUCTION_WON"/><column name="content" value="Chúc mừng bạn đã thắng phiên đấu giá Bình gốm Chu Đậu!"/></insert>
+        <insert tableName="notification"><column name="id" valueNumeric="2"/><column name="recipient_id" valueNumeric="3"/><column name="notification_type" value="PRODUCT_APPROVED"/><column name="content" value="Sản phẩm Đồng hồ Rolex Datejust đã được duyệt lên sàn."/></insert>
+
+        <insert tableName="complaint"><column name="id" valueNumeric="1"/><column name="requester_id" valueNumeric="4"/><column name="support_admin_id" valueNumeric="1"/><column name="order_id" valueNumeric="1"/><column name="complaint_content" value="Yêu cầu xuất hóa đơn điện tử VAT cho đơn hàng #1"/></insert>
+        <insert tableName="report"><column name="id" valueNumeric="1"/><column name="reporter_id" valueNumeric="4"/><column name="auction_id" valueNumeric="1"/><column name="report_content" value="Kiểm tra bổ sung giấy chứng nhận bảo hành đồng hồ"/></insert>
+        <insert tableName="dispute"><column name="id" valueNumeric="1"/><column name="complaint_id" valueNumeric="1"/><column name="support_admin_id" valueNumeric="1"/><column name="resolution" value="Đã gửi hóa đơn điện tử qua email thành viên"/></insert>
+
+        <insert tableName="audit_log"><column name="actor_id" valueNumeric="3"/><column name="action" value="LOGIN"/></insert>
+        <insert tableName="audit_log"><column name="actor_id" valueNumeric="3"/><column name="action" value="CREATE_PRODUCT"/></insert>
+        <insert tableName="audit_log"><column name="actor_id" valueNumeric="4"/><column name="action" value="LOGIN"/></insert>
+        <insert tableName="audit_log"><column name="actor_id" valueNumeric="4"/><column name="action" value="PLACE_BID"/></insert>
+
+        <insert tableName="system_configuration"><column name="config_key" value="platform_fee_percent"/><column name="config_value" value="5.0"/></insert>
+        <insert tableName="system_configuration"><column name="config_key" value="default_deposit_percent"/><column name="config_value" value="10.0"/></insert>
+        <insert tableName="system_configuration"><column name="config_key" value="auction_extend_seconds"/><column name="config_value" value="120"/></insert>
+    </changeSet>
+
+    <!-- Đồng bộ lại sequence cho PostgreSQL sau khi insert ID mẫu -->
+    <changeSet id="20261126000004-2" author="antigravity" context="dev" dbms="postgresql">
+        <sql>
+            SELECT setval(pg_get_serial_sequence('permission', 'id'), COALESCE((SELECT MAX(id) FROM permission), 1));
+            SELECT setval(pg_get_serial_sequence('category', 'id'), COALESCE((SELECT MAX(id) FROM category), 1));
+            SELECT setval(pg_get_serial_sequence('product', 'id'), COALESCE((SELECT MAX(id) FROM product), 1));
+            SELECT setval(pg_get_serial_sequence('product_image', 'id'), COALESCE((SELECT MAX(id) FROM product_image), 1));
+            SELECT setval(pg_get_serial_sequence('image_analysis', 'id'), COALESCE((SELECT MAX(id) FROM image_analysis), 1));
+            SELECT setval(pg_get_serial_sequence('product_moderation', 'id'), COALESCE((SELECT MAX(id) FROM product_moderation), 1));
+            SELECT setval(pg_get_serial_sequence('auction', 'id'), COALESCE((SELECT MAX(id) FROM auction), 1));
+            SELECT setval(pg_get_serial_sequence('auction_moderation', 'id'), COALESCE((SELECT MAX(id) FROM auction_moderation), 1));
+            SELECT setval(pg_get_serial_sequence('fraud_alert', 'id'), COALESCE((SELECT MAX(id) FROM fraud_alert), 1));
+            SELECT setval(pg_get_serial_sequence('bid', 'id'), COALESCE((SELECT MAX(id) FROM bid), 1));
+            SELECT setval(pg_get_serial_sequence('wallet', 'id'), COALESCE((SELECT MAX(id) FROM wallet), 1));
+            SELECT setval(pg_get_serial_sequence('withdrawal_request', 'id'), COALESCE((SELECT MAX(id) FROM withdrawal_request), 1));
+            SELECT setval(pg_get_serial_sequence('deposit', 'id'), COALESCE((SELECT MAX(id) FROM deposit), 1));
+            SELECT setval(pg_get_serial_sequence('orders', 'id'), COALESCE((SELECT MAX(id) FROM orders), 1));
+            SELECT setval(pg_get_serial_sequence('payment', 'id'), COALESCE((SELECT MAX(id) FROM payment), 1));
+            SELECT setval(pg_get_serial_sequence('wallet_transaction', 'id'), COALESCE((SELECT MAX(id) FROM wallet_transaction), 1));
+            SELECT setval(pg_get_serial_sequence('shipment', 'id'), COALESCE((SELECT MAX(id) FROM shipment), 1));
+            SELECT setval(pg_get_serial_sequence('review', 'id'), COALESCE((SELECT MAX(id) FROM review), 1));
+            SELECT setval(pg_get_serial_sequence('refund', 'id'), COALESCE((SELECT MAX(id) FROM refund), 1));
+            SELECT setval(pg_get_serial_sequence('notification', 'id'), COALESCE((SELECT MAX(id) FROM notification), 1));
+            SELECT setval(pg_get_serial_sequence('complaint', 'id'), COALESCE((SELECT MAX(id) FROM complaint), 1));
+            SELECT setval(pg_get_serial_sequence('report', 'id'), COALESCE((SELECT MAX(id) FROM report), 1));
+            SELECT setval(pg_get_serial_sequence('dispute', 'id'), COALESCE((SELECT MAX(id) FROM dispute), 1));
+            SELECT setval(pg_get_serial_sequence('audit_log', 'id'), COALESCE((SELECT MAX(id) FROM audit_log), 1));
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

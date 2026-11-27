@@ -6,6 +6,8 @@ import com.auction.system.security.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -32,6 +34,21 @@ public class SecurityConfiguration {
     }
 
     @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy(
+            String.join(
+                "\n",
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.SYSTEM_ADMIN,
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.AUCTION_ADMIN,
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.FINANCE_ADMIN,
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.SUPPORT_ADMIN,
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.SELLER,
+                AuthoritiesConstants.SUPER_ADMIN + " > " + AuthoritiesConstants.BIDDER
+            )
+        );
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
         http.cors(withDefaults())
             .csrf(csrf -> csrf.disable())
@@ -42,19 +59,26 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/authenticate").permitAll()
                     .requestMatchers("/api/auth/logout").authenticated()
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/admin/auth/activation").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/admin/auth/activate").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/auctions", "/api/auctions/*").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/sellers/*/profile").permitAll()
                     .requestMatchers("/api/register").permitAll()
                     .requestMatchers("/api/activate").permitAll()
                     .requestMatchers("/api/account/reset-password/init").permitAll()
                     .requestMatchers("/api/account/reset-password/finish").permitAll()
-                    .requestMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/api/admin/auction/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN, AuthoritiesConstants.AUCTION_ADMIN)
+                    .requestMatchers("/api/admin/finance/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN, AuthoritiesConstants.FINANCE_ADMIN)
+                    .requestMatchers("/api/admin/support/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN, AuthoritiesConstants.SUPPORT_ADMIN)
+                    .requestMatchers("/api/admin/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN)
                     .requestMatchers("/api/**").authenticated()
-                    .requestMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/v3/api-docs/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN)
                     .requestMatchers("/management/health").permitAll()
                     .requestMatchers("/management/health/**").permitAll()
                     .requestMatchers("/management/info").permitAll()
                     .requestMatchers("/management/prometheus").permitAll()
-                    .requestMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/management/**").hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.SYSTEM_ADMIN)
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions ->

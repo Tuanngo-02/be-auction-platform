@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20261127000005-1" author="antigravity">
+        <validCheckSum>ANY</validCheckSum>
+        <insert tableName="jhi_authority">
+            <column name="name" value="ROLE_SUPER_ADMIN"/>
+        </insert>
+        <sql>
+            INSERT INTO role_permission (role_name, permission_id)
+            SELECT 'ROLE_SUPER_ADMIN', id FROM permission;
+
+            INSERT INTO jhi_user_authority (user_id, authority_name)
+            SELECT user_id, 'ROLE_SUPER_ADMIN'
+            FROM jhi_user_authority
+            WHERE authority_name = 'ROLE_ADMIN'
+              AND NOT EXISTS (
+                  SELECT 1 FROM jhi_user_authority existing
+                  WHERE existing.user_id = jhi_user_authority.user_id
+                    AND existing.authority_name = 'ROLE_SUPER_ADMIN'
+              );
+
+            DELETE FROM role_permission WHERE role_name IN ('ROLE_USER', 'ROLE_ADMIN');
+            DELETE FROM jhi_user_authority WHERE authority_name IN ('ROLE_USER', 'ROLE_ADMIN');
+            DELETE FROM jhi_authority WHERE name IN ('ROLE_USER', 'ROLE_ADMIN');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
