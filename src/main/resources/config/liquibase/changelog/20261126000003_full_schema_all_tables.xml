@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ==================== NHÓM A: TÀI KHOẢN & PHÂN QUYỀN (BỔ SUNG) ==================== -->
+    <changeSet id="20261126000003-1" author="antigravity">
+        <addColumn tableName="jhi_user">
+            <column name="interests" type="varchar(500)"/>
+        </addColumn>
+
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_SYSTEM_ADMIN"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_AUCTION_ADMIN"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_FINANCE_ADMIN"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_SUPPORT_ADMIN"/></insert>
+
+        <createTable tableName="permission">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="permission_name" type="varchar(100)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_permission_name"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="role_permission">
+            <column name="role_name" type="varchar(50)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="permission_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="role_name" baseTableName="role_permission"
+                                 constraintName="fk_role_permission_role"
+                                 referencedColumnNames="name" referencedTableName="jhi_authority"/>
+        <addForeignKeyConstraint baseColumnNames="permission_id" baseTableName="role_permission"
+                                 constraintName="fk_role_permission_perm"
+                                 referencedColumnNames="id" referencedTableName="permission"/>
+    </changeSet>
+
+    <!-- ==================== NHÓM B: SẢN PHẨM & KIỂM DUYỆT ==================== -->
+    <changeSet id="20261126000003-2" author="antigravity">
+        <createTable tableName="category">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="category_name" type="varchar(150)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_category_name"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="product">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="seller_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="category_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_information" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condition" type="varchar(50)"/>
+            <column name="approval_status" type="varchar(30)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="seller_id" baseTableName="product"
+                                 constraintName="fk_product_seller"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+        <addForeignKeyConstraint baseColumnNames="category_id" baseTableName="product"
+                                 constraintName="fk_product_category"
+                                 referencedColumnNames="id" referencedTableName="category"/>
+
+        <createTable tableName="product_image">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="image_url" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="product_id" baseTableName="product_image"
+                                 constraintName="fk_product_image_product"
+                                 referencedColumnNames="id" referencedTableName="product"/>
+
+        <createTable tableName="image_analysis">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="image_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_ai_generated" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="analyzed_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="image_id" baseTableName="image_analysis"
+                                 constraintName="fk_image_analysis_image"
+                                 referencedColumnNames="id" referencedTableName="product_image"/>
+
+        <createTable tableName="product_moderation">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="admin_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="decision" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="note" type="varchar(500)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="product_id" baseTableName="product_moderation"
+                                 constraintName="fk_product_mod_product"
+                                 referencedColumnNames="id" referencedTableName="product"/>
+        <addForeignKeyConstraint baseColumnNames="admin_id" baseTableName="product_moderation"
+                                 constraintName="fk_product_mod_admin"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+    </changeSet>
+
+    <!-- ==================== NHÓM C: PHIÊN ĐẤU GIÁ & TRẢ GIÁ ==================== -->
+    <changeSet id="20261126000003-3" author="antigravity">
+        <createTable tableName="auction">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="starting_price" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reserve_price" type="numeric(21,2)"/>
+            <column name="bid_increment" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(30)" defaultValue="SCHEDULED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="product_id" baseTableName="auction"
+                                 constraintName="fk_auction_product"
+                                 referencedColumnNames="id" referencedTableName="product"/>
+
+        <createTable tableName="auction_moderation">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="admin_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="auction_moderation"
+                                 constraintName="fk_auction_mod_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+        <addForeignKeyConstraint baseColumnNames="admin_id" baseTableName="auction_moderation"
+                                 constraintName="fk_auction_mod_admin"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="fraud_alert">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="abnormal_behavior" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="fraud_alert"
+                                 constraintName="fk_fraud_alert_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+
+        <createTable tableName="auction_participation">
+            <column name="auction_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="bidder_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="eligibility_status" type="varchar(30)" defaultValue="ELIGIBLE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="auction_participation"
+                                 constraintName="fk_part_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+        <addForeignKeyConstraint baseColumnNames="bidder_id" baseTableName="auction_participation"
+                                 constraintName="fk_part_bidder"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="bid">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bidder_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bid_amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="placed_at" type="timestamp" defaultValueComputed="${now}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validity_status" type="varchar(30)" defaultValue="VALID">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id,bidder_id" baseTableName="bid"
+                                 constraintName="fk_bid_participation"
+                                 referencedColumnNames="auction_id,bidder_id" referencedTableName="auction_participation"/>
+
+        <createTable tableName="auction_result">
+            <column name="auction_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="winning_bid_id" type="bigint">
+                <constraints unique="true" uniqueConstraintName="ux_auction_result_winning_bid"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="auction_result"
+                                 constraintName="fk_result_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+        <addForeignKeyConstraint baseColumnNames="winning_bid_id" baseTableName="auction_result"
+                                 constraintName="fk_result_winning_bid"
+                                 referencedColumnNames="id" referencedTableName="bid"/>
+
+        <createTable tableName="watchlist">
+            <column name="user_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="watchlist"
+                                 constraintName="fk_watchlist_user"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="watchlist"
+                                 constraintName="fk_watchlist_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+    </changeSet>
+
+    <!-- ==================== NHÓM D & E: VÍ, CỌC, ĐƠN HÀNG, THANH TOÁN ==================== -->
+    <changeSet id="20261126000003-4" author="antigravity">
+        <createTable tableName="wallet">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_wallet_user"/>
+            </column>
+            <column name="coin_balance" type="numeric(21,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="wallet"
+                                 constraintName="fk_wallet_user"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="withdrawal_request">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="wallet_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(30)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="wallet_id" baseTableName="withdrawal_request"
+                                 constraintName="fk_withdrawal_wallet"
+                                 referencedColumnNames="id" referencedTableName="wallet"/>
+
+        <createTable tableName="deposit">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bidder_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(30)" defaultValue="LOCKED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id,bidder_id" baseTableName="deposit"
+                                 constraintName="fk_deposit_participation"
+                                 referencedColumnNames="auction_id,bidder_id" referencedTableName="auction_participation"/>
+
+        <createTable tableName="orders">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_orders_auction"/>
+            </column>
+            <column name="address_id" type="bigint"/>
+            <column name="order_status" type="varchar(30)" defaultValue="PENDING_PAYMENT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="orders"
+                                 constraintName="fk_orders_result"
+                                 referencedColumnNames="auction_id" referencedTableName="auction_result"/>
+        <addForeignKeyConstraint baseColumnNames="address_id" baseTableName="orders"
+                                 constraintName="fk_orders_address"
+                                 referencedColumnNames="id" referencedTableName="address"/>
+
+        <createTable tableName="payment">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_status" type="varchar(30)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="payment"
+                                 constraintName="fk_payment_order"
+                                 referencedColumnNames="id" referencedTableName="orders"/>
+
+        <createTable tableName="wallet_transaction">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="wallet_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deposit_id" type="bigint"/>
+            <column name="payment_id" type="bigint"/>
+            <column name="transaction_type" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(30)" defaultValue="SUCCESS">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="wallet_id" baseTableName="wallet_transaction"
+                                 constraintName="fk_wtx_wallet"
+                                 referencedColumnNames="id" referencedTableName="wallet"/>
+        <addForeignKeyConstraint baseColumnNames="deposit_id" baseTableName="wallet_transaction"
+                                 constraintName="fk_wtx_deposit"
+                                 referencedColumnNames="id" referencedTableName="deposit"/>
+        <addForeignKeyConstraint baseColumnNames="payment_id" baseTableName="wallet_transaction"
+                                 constraintName="fk_wtx_payment"
+                                 referencedColumnNames="id" referencedTableName="payment"/>
+
+        <createTable tableName="shipment">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delivery_status" type="varchar(40)" defaultValue="PREPARING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="shipment"
+                                 constraintName="fk_shipment_order"
+                                 referencedColumnNames="id" referencedTableName="orders"/>
+
+        <createTable tableName="review">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reviewer_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rating" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="review_content" type="varchar(1000)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="review"
+                                 constraintName="fk_review_order"
+                                 referencedColumnNames="id" referencedTableName="orders"/>
+        <addForeignKeyConstraint baseColumnNames="reviewer_id" baseTableName="review"
+                                 constraintName="fk_review_user"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="refund">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="numeric(21,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="payment_id" baseTableName="refund"
+                                 constraintName="fk_refund_payment"
+                                 referencedColumnNames="id" referencedTableName="payment"/>
+    </changeSet>
+
+    <!-- ==================== NHÓM F & G: BÁO CÁO, HỖ TRỢ, NHẬT KÝ & CẤU HÌNH ==================== -->
+    <changeSet id="20261126000003-5" author="antigravity">
+        <createTable tableName="notification">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="recipient_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notification_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_read" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="recipient_id" baseTableName="notification"
+                                 constraintName="fk_notification_user"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="complaint">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="requester_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="support_admin_id" type="bigint"/>
+            <column name="auction_id" type="bigint"/>
+            <column name="order_id" type="bigint"/>
+            <column name="complaint_content" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="requester_id" baseTableName="complaint"
+                                 constraintName="fk_complaint_requester"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+        <addForeignKeyConstraint baseColumnNames="support_admin_id" baseTableName="complaint"
+                                 constraintName="fk_complaint_admin"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="complaint"
+                                 constraintName="fk_complaint_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+        <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="complaint"
+                                 constraintName="fk_complaint_order"
+                                 referencedColumnNames="id" referencedTableName="orders"/>
+
+        <createTable tableName="report">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="reporter_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="auction_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="report_content" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="reporter_id" baseTableName="report"
+                                 constraintName="fk_report_reporter"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+        <addForeignKeyConstraint baseColumnNames="auction_id" baseTableName="report"
+                                 constraintName="fk_report_auction"
+                                 referencedColumnNames="id" referencedTableName="auction"/>
+
+        <createTable tableName="dispute">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="complaint_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="support_admin_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resolution" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="${now}"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="complaint_id" baseTableName="dispute"
+                                 constraintName="fk_dispute_complaint"
+                                 referencedColumnNames="id" referencedTableName="complaint"/>
+        <addForeignKeyConstraint baseColumnNames="support_admin_id" baseTableName="dispute"
+                                 constraintName="fk_dispute_admin"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="audit_log">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="actor_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_time" type="timestamp" defaultValueComputed="${now}">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="actor_id" baseTableName="audit_log"
+                                 constraintName="fk_audit_log_actor"
+                                 referencedColumnNames="id" referencedTableName="jhi_user"/>
+
+        <createTable tableName="system_configuration">
+            <column name="config_key" type="varchar(100)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="config_value" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
