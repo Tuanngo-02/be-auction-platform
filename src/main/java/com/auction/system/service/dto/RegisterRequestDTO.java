@@ -26,6 +26,16 @@ public class RegisterRequestDTO {
 
     private LocalDate birthDate;
 
+    private String role;
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public String getFullName() {
         return fullName;
     }

@@ -30,6 +30,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.verifyEmailOtp(req)));
     }
 
+    @PostMapping("/resend-verify-email-otp")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resendVerifyEmailOtp(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(ApiResponse.success(authService.resendVerifyEmailOtp(body.get("emailOrPhone"))));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthTokenDTO>> login(@Valid @RequestBody LoginRequestDTO req, HttpServletRequest httpReq) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(req, httpReq)));
