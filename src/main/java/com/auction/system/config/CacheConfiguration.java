@@ -6,6 +6,7 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
 import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
 import org.redisson.config.ClusterServersConfig;
 import org.redisson.config.Config;
 import org.redisson.config.SingleServerConfig;
@@ -20,10 +21,8 @@ import tech.jhipster.config.JHipsterProperties;
 @EnableCaching
 public class CacheConfiguration {
 
-    @Bean
-    public javax.cache.configuration.Configuration<Object, Object> jcacheConfiguration(JHipsterProperties jHipsterProperties) {
-        MutableConfiguration<Object, Object> jcacheConfig = new MutableConfiguration<>();
-
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient(JHipsterProperties jHipsterProperties) {
         URI redisUri = URI.create(jHipsterProperties.getCache().getRedis().getServer()[0]);
 
         Config config = new Config();
@@ -52,11 +51,20 @@ public class CacheConfiguration {
                 singleServerConfig.setPassword(redisUri.getUserInfo().substring(redisUri.getUserInfo().indexOf(':') + 1));
             }
         }
+        return Redisson.create(config);
+    }
+
+    @Bean
+    public javax.cache.configuration.Configuration<Object, Object> jcacheConfiguration(
+        JHipsterProperties jHipsterProperties,
+        RedissonClient redissonClient
+    ) {
+        MutableConfiguration<Object, Object> jcacheConfig = new MutableConfiguration<>();
         jcacheConfig.setStatisticsEnabled(true);
         jcacheConfig.setExpiryPolicyFactory(
             CreatedExpiryPolicy.factoryOf(new Duration(TimeUnit.SECONDS, jHipsterProperties.getCache().getRedis().getExpiration()))
         );
-        return RedissonConfiguration.fromInstance(Redisson.create(config), jcacheConfig);
+        return RedissonConfiguration.fromInstance(redissonClient, jcacheConfig);
     }
 
     @Bean
