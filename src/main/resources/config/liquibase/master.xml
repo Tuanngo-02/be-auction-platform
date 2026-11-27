@@ -16,6 +16,7 @@
     <include file="config/liquibase/changelog/20261126000002_user_seller_seed_data.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261126000003_full_schema_all_tables.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261126000004_full_seed_data_all_tables.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261127000005_add_super_admin_role.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
